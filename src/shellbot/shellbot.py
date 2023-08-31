@@ -13,6 +13,28 @@ class Shellbot(discord.Bot):
         super().__init__(intents=intents)
         self.admins = admins
         self._jobs = set()
+        self.restart = False
+
+        @self.slash_command()
+        async def shutdown(ctx):
+            if ctx.author.id not in self.admins:
+                await ctx.respond("Permission not granted.", ephemeral=True)
+                return
+            await ctx.respond("Bye!", ephemeral=True)
+            await self.close()
+
+        @self.slash_command()
+        async def ping(ctx):
+            await ctx.respond("Pong.", ephemeral=True)
+
+        @self.slash_command()
+        async def restart(ctx):
+            if ctx.author.id not in self.admins:
+                await ctx.respond("Permission not granted.", ephemeral=True)
+                return
+            await ctx.respond("Restarting...", ephemeral=True)
+            self.restart = True
+            await self.close()
 
         job_group = self.create_group(name="job")
 

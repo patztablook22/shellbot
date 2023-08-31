@@ -91,9 +91,9 @@ class Window:
             else:
                 prefix = " "
                 if ante is not None and ante.type is not None:
-                    text = text + f'{Window.BLANK}\n' * 3
+                    text = text + f'{Window.BLANK}\n' * 1
                 if post is not None and post.type is not None:
-                    text = f'{Window.BLANK}\n' * 3 + text
+                    text = f'{Window.BLANK}\n' * 1 + text
 
             text_width = line_width - len(prefix)
             for text1 in text.splitlines():

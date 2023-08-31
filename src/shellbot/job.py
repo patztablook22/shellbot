@@ -5,28 +5,40 @@ import asyncio
 from shellbot.window import Window
 
 class Job:
-    def __init__(self, ctx, command):
-        self._command = command
+    id_counter = 0
+
+    def __init__(self, ctx, args):
+        self.args = args
+        self.id = Job.id_counter
+        Job.id_counter += 1
         self._relay = None
         self._queue = []
-        self._window = Window(ctx)
+        self._window = Window(ctx, self.id)
+        self._ps = None
 
     async def start(self):
         def relay():
-            ps = subprocess.Popen(args=self._command,
-                                  shell=True,
+            ps = subprocess.Popen(args=self.args,
                                   stdout=subprocess.PIPE,
                                   stderr=subprocess.STDOUT)
+            self._ps = ps
             while True:
                 data = ps.stdout.readline()
                 if not data: break
                 self._window.update(data.decode('utf-8')[:-1])
-            self._window.close()
+            self._ps.wait()
+            self._window.close(exit_status=self._ps.poll())
 
-        await self._window.init()
+        await self._window.render()
         self._relay = threading.Thread(target=relay)
         self._relay.start()
-        while True:
+        while await self._window.render():
             await asyncio.sleep(0.1)
-            await self._window.render()
 
+    async def kill(self):
+        assert self._ps is not None
+        self._ps.terminate()
+        if self._ps.poll() is None:
+            await asyncio.sleep(3)
+            if self._ps.poll() is None:
+                self._ps.kill()

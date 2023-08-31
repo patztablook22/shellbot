@@ -35,22 +35,27 @@ class Event:
 class Window:
     BLANK = '‎ '
 
-    def __init__(self, ctx):
+    def __init__(self, ctx, job_id):
+        self._job_id = job_id
         self._ctx = ctx
         self._interaction = None
         self._events = []
         self._update = True
         self.min_height = 5
         self.max_height = 20
+        self._exit_status = None
+        self._closed = False
 
     def _build(self):
-        if not self._events: return f"```diff\n{Window.BLANK}\n```"
         line_width = 1_000_000_000_000
-
         buff = "```diff\n"
 
         status = None
+
         lines = []
+        if self._exit_status is not None:
+            lines.append(f"\n--- EXIT STATUS {self._exit_status}")
+
         for i in reversed(range(len(self._events))):
             ante = self._events[i - 1] if i > 0 else None
             post = self._events[i + 1] if i < len(self._events) - 1 else None
@@ -67,10 +72,12 @@ class Window:
                     prefix = '+ '
                 elif i == len(self._events) - 1:
                     prefix = '> '
+                else:
+                    prefix = '* '
                 status = None
 
             elif curr.type == 'LOG':
-                prefix = '> '
+                prefix = '> ' if i == len(self._events) - 1 else '* '
                 status = None
 
             elif curr.type == 'ERR':
@@ -98,6 +105,7 @@ class Window:
             if len(lines) >= self.max_height:
                 break
 
+        buff += f"--- JOB ID {self._job_id}\n\n"
         buff += '\n'.join(reversed(lines[:self.max_height]))
         buff += "```"
         return buff
@@ -106,22 +114,22 @@ class Window:
         if not self._interaction:
             self._interaction = await self._ctx.respond(Window.BLANK)
 
-        if not self._update: return
+        closed = self._closed
+        if not self._update: return not closed
+
         if self._interaction:
             buff = self._build()
             await self._interaction.edit_original_response(content=buff)
 
         self._update = False
+        return not closed
 
-    async def init(self):
-        await self.render()
-
-    def open(self):
-        pass
-
-    def close(self):
-        pass
+    def close(self, exit_status=None):
+        self._exit_status = exit_status
+        self._closed = True
+        self._update = True
 
     def update(self, data):
+        if self._closed: return
         self._events.append(Event(data))
         self._update = True

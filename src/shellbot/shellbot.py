@@ -61,6 +61,7 @@ class Shellbot(discord.Bot):
                 await ctx.respond("No job is currently running.")
                 return
 
-            buff = [f"{str(j.id).ljust(Job.id_counter)} :: {j.args}" for j in self._jobs]
+            pad = len(str(Job.id_counter))
+            buff = [f"{str(j.id).ljust(pad)} :: {j.args}" for j in self._jobs]
             await ctx.respond("```\n" + "\n".join(buff) + "\n```", ephemeral=True)
 

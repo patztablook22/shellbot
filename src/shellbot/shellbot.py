@@ -38,8 +38,8 @@ class Shellbot(discord.Bot):
 
         job_group = self.create_group(name="job")
 
-        @job_group.command(name="start")
-        async def job_start(ctx, command: str):
+        @job_group.command(name="run")
+        async def job_run(ctx, command: str):
             if ctx.author.id not in self.admins:
                 await ctx.respond("Permission not granted.", ephemeral=True)
                 return

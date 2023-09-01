@@ -80,7 +80,7 @@ class Shellbot(discord.Bot):
                 return
 
             if len(self._jobs) == 0:
-                await ctx.respond("No job is currently running.")
+                await ctx.respond("No job is currently running.", ephemeral=True)
                 return
 
             pad = len(str(Job.id_counter))

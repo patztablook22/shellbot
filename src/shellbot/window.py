@@ -133,7 +133,7 @@ class Window:
             buff = self._build()
             self._edit_count += 1
             if isinstance(self._interaction, discord.WebhookMessage):
-                await self._interaction.edit(content=buff)
+                self._interaction = await self._interaction.edit(content=buff)
             else:
                 await self._interaction.edit_original_response(content=buff)
 

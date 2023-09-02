@@ -45,6 +45,7 @@ class Window:
         self.max_height = 20
         self._exit_status = None
         self._closed = False
+        self._edit_count = 0
 
     def _build(self):
         line_width = 80
@@ -111,6 +112,10 @@ class Window:
         return buff
 
     async def render(self):
+        if self._edit_count > 950:
+            self._interaction = None
+            self._edit_count = 0
+
         if not self._interaction:
             self._interaction = await self._ctx.respond(Window.BLANK)
 
@@ -120,6 +125,7 @@ class Window:
         if self._interaction:
             buff = self._build()
             await self._interaction.edit_original_response(content=buff)
+            self._edit_count += 1
 
         self._update = False
         return not closed

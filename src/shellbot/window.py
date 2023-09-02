@@ -1,4 +1,5 @@
 import time
+import discord
 
 class Event:
     def __init__(self, data):
@@ -131,7 +132,10 @@ class Window:
         if self._interaction:
             buff = self._build()
             self._edit_count += 1
-            await self._interaction.edit_original_response(content=buff)
+            if isinstance(self._interaction, discord.WebhookMessage):
+                await self._interaction.edit(content=buff)
+            else:
+                await self._interaction.edit_original_response(content=buff)
 
         self._update = False
         return not closed

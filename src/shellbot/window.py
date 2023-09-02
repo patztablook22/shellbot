@@ -1,3 +1,5 @@
+import time
+
 class Event:
     def __init__(self, data):
         if data.startswith('[[LOG]]'):
@@ -46,6 +48,7 @@ class Window:
         self._exit_status = None
         self._closed = False
         self._edit_count = 0
+        self._last_created = float('-inf')
 
     def _build(self):
         line_width = 80
@@ -114,9 +117,12 @@ class Window:
     async def render(self):
         if self._edit_count > 950:
             self._interaction = None
-            self._edit_count = 0
+        elif time.time() - self._last_created >= 60 * 10:
+            self._interaction = None
 
         if not self._interaction:
+            self._edit_count = 0
+            self._last_created = time.time()
             self._interaction = await self._ctx.respond(Window.BLANK)
 
         closed = self._closed
@@ -124,8 +130,8 @@ class Window:
 
         if self._interaction:
             buff = self._build()
-            await self._interaction.edit_original_response(content=buff)
             self._edit_count += 1
+            await self._interaction.edit_original_response(content=buff)
 
         self._update = False
         return not closed

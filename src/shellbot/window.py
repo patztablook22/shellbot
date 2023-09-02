@@ -24,7 +24,7 @@ class Event:
         data = data[7:].lstrip()
         if data[0] != '[': return {}, data
         inside = data[1:].split(']')[0]
-        outside = data[len(inside) + 2:]
+        outside = data[len(inside) + 2:].strip()
         if '[' in inside or ']' in inside: return {}, outside
         assignments = inside.split(',')
         misc = dict([(a.split('=')[0].strip(), a.split('=')[1].strip()) 
@@ -68,25 +68,25 @@ class Window:
                 if i == len(self._events) - 1:
                     text += '...'
                 if status == 'ERR':
-                    prefix = '- '
+                    prefix = '-  '
                 elif status == 'SUC':
-                    prefix = '+ '
+                    prefix = '+  '
                 elif i == len(self._events) - 1:
-                    prefix = '> '
+                    prefix = '>  '
                 else:
-                    prefix = '* '
+                    prefix = '*  '
                 status = None
 
             elif curr.type == 'LOG':
-                prefix = '> ' if i == len(self._events) - 1 else '* '
+                prefix = '>  ' if i == len(self._events) - 1 else '* '
                 status = None
 
             elif curr.type == 'ERR':
-                prefix = '- '
+                prefix = '-  '
                 status = curr.type
 
             elif curr.type == 'SUC':
-                prefix = '+ '
+                prefix = '+  '
                 status = curr.type
 
             else:

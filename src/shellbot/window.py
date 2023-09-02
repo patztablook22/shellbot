@@ -78,7 +78,7 @@ class Window:
                 status = None
 
             elif curr.type == 'LOG':
-                prefix = '>  ' if i == len(self._events) - 1 else '* '
+                prefix = '>  ' if i == len(self._events) - 1 else '*  '
                 status = None
 
             elif curr.type == 'ERR':

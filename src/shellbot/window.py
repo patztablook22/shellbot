@@ -47,7 +47,7 @@ class Window:
         self._closed = False
 
     def _build(self):
-        line_width = 1_000_000_000_000
+        line_width = 80
         buff = "```diff\n"
 
         status = None

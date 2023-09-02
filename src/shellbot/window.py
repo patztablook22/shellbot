@@ -92,13 +92,13 @@ class Window:
             else:
                 prefix = " "
                 if ante is not None and ante.type is not None:
-                    text = text + f'{Window.BLANK}\n' * 2
-                if post is not None and post.type is not None:
                     text = f'{Window.BLANK}\n' * 1 + text
+                if post is not None and post.type is not None:
+                    text = text + f'{Window.BLANK}\n' * 2
 
             text_width = line_width - len(prefix)
-            for text1 in text.splitlines():
-                for begin in range(0, len(text1), text_width):
+            for text1 in reversed(text.splitlines()):
+                for begin in reversed(range(0, len(text1), text_width)):
                     chunk = text1[begin : begin + text_width]
                     chunk = prefix + chunk
                     lines.append(chunk)

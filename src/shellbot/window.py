@@ -35,21 +35,61 @@ class Event:
         misc['ellipsis'] = misc.get('ellipsis', 'false').lower() == 'true'
         return misc, outside
 
+class View:
+    def __init__(self, ctx):
+        self._ctx = ctx
+        self._interaction = None
+        self._message = None
+        self.closed = False
+
+    def tied_to(self, message):
+        return message.id == self._message.id
+
+    async def close(self):
+        await self._message.delete()
+
+    async def render(self, content):
+        if not self._interaction:
+            self._interaction = await self._ctx.respond(Window.BLANK)
+            message = await self._interaction.original_response()
+            self._message = message
+            await message.add_reaction('🗑️')
+            await message.add_reaction('💀')
+
+        try:
+            await self._interaction.edit_original_response(content=content)
+        except:
+            self.closed = True
+
 class Window:
     BLANK = '‎ '
 
-    def __init__(self, ctx, job_id):
+    def __init__(self, job_id):
         self._job_id = job_id
-        self._ctx = ctx
-        self._interaction = None
         self._events = []
         self._update = True
         self.min_height = 5
         self.max_height = 20
         self._exit_status = None
         self._closed = False
-        self._edit_count = 0
-        self._last_created = float('-inf')
+        self._views = []
+
+    def has_view(self, message):
+        for view in self._views:
+            if view.tied_to(message):
+                return True
+        return False
+
+    async def view(self, ctx):
+        view = View(ctx)
+        await view.render(self._build())
+        self._views.append(view)
+
+    async def close_view(self, message):
+        for i in range(len(self._views)):
+            if self._views[i].tied_to(message):
+                await self._views.pop(i).close()
+                return
 
     def _build(self):
         line_width = 80
@@ -58,8 +98,11 @@ class Window:
         status = None
 
         lines = []
-        if self._exit_status is not None:
-            lines.append(f"\n--- EXIT STATUS {self._exit_status}")
+        if self._closed:
+            if self._exit_status is not None:
+                lines.append(f"\n--- EXIT STATUS {self._exit_status}")
+            else:
+                lines.append(f"\n--- END")
 
         for i in reversed(range(len(self._events))):
             ante = self._events[i - 1] if i > 0 else None
@@ -116,26 +159,18 @@ class Window:
         return buff
 
     async def render(self):
-        if self._edit_count > 950:
-            self._interaction = None
-        elif time.time() - self._last_created >= 60 * 10:
-            self._interaction = None
-
-        if not self._interaction:
-            self._edit_count = 0
-            self._last_created = time.time()
-            self._interaction = await self._ctx.respond(Window.BLANK)
-
         closed = self._closed
         if not self._update: return not closed
 
-        if self._interaction:
-            buff = self._build()
-            self._edit_count += 1
-            if isinstance(self._interaction, discord.WebhookMessage):
-                self._interaction = await self._interaction.edit(content=buff)
+        content = self._build()
+        i = 0
+        while i < len(self._views):
+            view = self._views[i]
+            await view.render(content)
+            if view.closed:
+                self._views.pop(i)
             else:
-                await self._interaction.edit_original_response(content=buff)
+                i += 1
 
         self._update = False
         return not closed

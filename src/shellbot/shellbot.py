@@ -10,6 +10,9 @@ class Shellbot(discord.Bot):
                  admins: list[int],
                  intents: Optional[discord.Intents] = None,
                  ):
+        if intents is None:
+            intents = discord.Intents(reactions=True)
+
         super().__init__(intents=intents)
         self.admins = admins
         self._jobs = set()
@@ -44,19 +47,21 @@ class Shellbot(discord.Bot):
                 await ctx.respond("Permission not granted.", ephemeral=True)
                 return
 
-            job = Job(ctx, command.split(' '))
+            job = Job(command.split(' '))
+
             self._jobs.add(job)
+            await job.view(ctx)
             await job.start()
-            self._jobs.remove(job)
 
         async def get_jobs(ctx: discord.AutocompleteContext):
             if ctx.interaction.user.id not in self.admins: return []
             return [job.id for job in self._jobs]
 
-        @job_group.command(name='kill')
-        async def job_kill(ctx, 
-                           id: discord.Option(int, autocomplete=discord.utils.basic_autocomplete(get_jobs))
+        @job_group.command(name="view")
+        async def job_view(ctx, 
+                           job: discord.Option(int, autocomplete=discord.utils.basic_autocomplete(get_jobs))
                            ):
+            id = job
             if ctx.author.id not in self.admins:
                 await ctx.respond("Permission not granted.", ephemeral=True)
                 return
@@ -67,7 +72,28 @@ class Shellbot(discord.Bot):
                     job = j
 
             if job is None:
-                await ctx.respond("The job is not currently running.", ephemeral=True)
+                await ctx.respond(f"Job ID {id} is not currently running.", ephemeral=True)
+                return
+
+            await job.view(ctx)
+
+        @job_group.command(name='kill')
+        async def job_kill(ctx, 
+                           job: discord.Option(int, autocomplete=discord.utils.basic_autocomplete(get_jobs))
+                           ):
+            id = job
+            if ctx.author.id not in self.admins:
+                await ctx.respond("Permission not granted.", ephemeral=True)
+                return
+
+            job = None
+            for j in self._jobs:
+                if j.id == id:
+                    job = j
+
+            if job is None:
+                await ctx.respond(f"Job ID {id} is not currently running.", ephemeral=True)
+                return
 
             await ctx.defer(ephemeral=True)
             await job.kill()
@@ -84,6 +110,64 @@ class Shellbot(discord.Bot):
                 return
 
             pad = len(str(Job.id_counter))
-            buff = [f"{str(j.id).ljust(pad)} :: {j.args}" for j in self._jobs]
-            await ctx.respond("```\n" + "\n".join(buff) + "\n```", ephemeral=True)
+            buff = []
+            for j in self._jobs:
+                prefix = '   '
+                if j.status == 'running':
+                    prefix = '>  '
+                elif j.status == 'success':
+                    prefix = '+  '
+                elif j.status == 'fail':
+                    prefix = '-  '
+                buff.append(prefix + str(j.id).ljust(pad) + ' :: ' + str(j.args))
 
+            await ctx.respond("```diff\n" + "\n".join(buff) + "\n```", ephemeral=True)
+
+    def job_by_view(self, message):
+        for job in self._jobs:
+            if job.has_view(message): 
+                return job
+
+    async def on_raw_reaction_add(self, payload):
+        channel = await self.fetch_channel(payload.channel_id)
+        message = await channel.fetch_message(payload.message_id)
+        member = payload.member
+        emoji = payload.emoji
+
+        control_emojis = {'close': '🗑️',
+                          'kill': '💀'}
+
+
+        def is_job_control():
+            if member == self.user: return False
+            if message.author != self.user: return False
+            if emoji.name not in control_emojis.values(): return False
+            if not hasattr(message, 'interaction') or not message.interaction: return False
+            appcmd = 2 # discord.InteractionType.application_command
+            if message.interaction.type != appcmd: return False
+            return message.interaction.name in ['job run', 'job view']
+
+        if not is_job_control():
+            return
+
+        async def remove_reaction():
+            for reaction in message.reactions:
+                if reaction.emoji not in control_emojis.values(): continue
+                async for user in reaction.users():
+                    if user != self.user:
+                        await reaction.remove(user)
+            return
+
+        if member.id not in self.admins:
+            await remove_reaction()
+
+        job = self.job_by_view(message)
+        if job is None: 
+            return
+
+        name = emoji.name
+        if name == control_emojis['close']:
+            await job.close_view(message)
+        elif name == control_emojis['kill']:
+            await job.kill()
+        await remove_reaction()

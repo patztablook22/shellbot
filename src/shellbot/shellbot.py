@@ -162,10 +162,14 @@ class Shellbot(discord.Bot):
             await remove_reaction()
 
         job = self.job_by_view(message)
+        name = emoji.name
+
         if job is None: 
+            if name == control_emojis['close']:
+                await message.delete()
+
             return
 
-        name = emoji.name
         if name == control_emojis['close']:
             await job.close_view(message)
         elif name == control_emojis['kill']:

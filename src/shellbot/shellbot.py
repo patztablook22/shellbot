@@ -3,6 +3,9 @@ from discord.ext import commands
 import asyncio
 from typing import Optional
 from shellbot.job import Job
+import os
+import shutil
+import time
 
 
 class Shellbot(discord.Bot):
@@ -38,6 +41,34 @@ class Shellbot(discord.Bot):
             await ctx.respond("Restarting...", ephemeral=True)
             self.restart = True
             await self.close()
+
+        @self.slash_command()
+        async def upload(ctx, path: str):
+            if ctx.author.id not in self.admins:
+                await ctx.respond("Permission not granted.", ephemeral=True)
+                return
+
+            if not os.path.exists(path):
+                await ctx.respond("Could not read the file.", ephemeral=True)
+                return
+
+            await ctx.defer()
+            if os.path.isdir(path):
+                temp_filename = f"temp_{time.time()}"
+                shutil.make_archive(temp_filename, 'zip', path)
+                temp_filename += '.zip'
+                display_filename = os.path.basename(path) + '.zip'
+                f = open(temp_filename, 'rb')
+            else:
+                temp_filename = None
+                display_filename = os.path.basename(path)
+                f = open(path, 'rb')
+        
+            await ctx.respond(file=discord.File(f, filename=display_filename))
+            f.close()
+
+            if temp_filename:
+                os.remove(temp_filename)
 
         job_group = self.create_group(name="job")
 
@@ -76,6 +107,35 @@ class Shellbot(discord.Bot):
                 return
 
             await job.view(ctx)
+
+        @job_group.command(name="dump")
+        async def job_dump(ctx, 
+                           job: discord.Option(int, autocomplete=discord.utils.basic_autocomplete(get_jobs))
+                           ):
+            id = job
+            if ctx.author.id not in self.admins:
+                await ctx.respond("Permission not granted.", ephemeral=True)
+                return
+
+            job = None
+            for j in self._jobs:
+                if j.id == id:
+                    job = j
+
+            if job is None:
+                await ctx.respond(f"Job ID {id} is not currently running.", ephemeral=True)
+                return
+
+            await ctx.defer()
+            temp_filename = f"temp_{time.time()}.txt"
+            with open(temp_filename, 'w') as f:
+                f.write(job._window._build(raw=True))
+                f.close()
+
+            with open(temp_filename, 'rb') as f:
+                await ctx.respond(file=discord.File(f, filename=f"job_{id}.txt"))
+
+            os.remove(temp_filename)
 
         @job_group.command(name='kill')
         async def job_kill(ctx, 

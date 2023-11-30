@@ -91,9 +91,9 @@ class Window:
                 await self._views.pop(i).close()
                 return
 
-    def _build(self):
+    def _build(self, raw=False):
         line_width = 80
-        buff = "```diff\n"
+        buff = "" if raw else "```diff\n"
 
         status = None
 
@@ -145,17 +145,20 @@ class Window:
 
             text_width = line_width - len(prefix)
             for text1 in reversed(text.splitlines()):
-                for begin in reversed(range(0, len(text1), text_width)):
+                text_width2 = len(text1) + 100 if raw else text_width
+                for begin in reversed(range(0, len(text1), text_width2)):
                     chunk = text1[begin : begin + text_width]
                     chunk = prefix + chunk
                     lines.append(chunk)
 
-            if len(lines) >= self.max_height:
+            if not raw and len(lines) >= self.max_height:
                 break
 
         buff += f"--- JOB ID {self._job_id}\n\n"
-        buff += '\n'.join(reversed(lines[:self.max_height]))
-        buff += "```"
+        buff += '\n'.join(reversed(
+            lines if raw else lines[:self.max_height]
+            ))
+        if not raw: buff += "```"
         return buff
 
     async def render(self):

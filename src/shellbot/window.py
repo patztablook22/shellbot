@@ -145,9 +145,9 @@ class Window:
 
             text_width = line_width - len(prefix)
             for text1 in reversed(text.splitlines()):
-                text_width2 = len(text1) + 100 if raw else text_width
+                text_width2 = len(text) + 100 if raw else text_width
                 for begin in reversed(range(0, len(text1), text_width2)):
-                    chunk = text1[begin : begin + text_width]
+                    chunk = text1[begin : begin + text_width2]
                     chunk = prefix + chunk
                     lines.append(chunk)
 

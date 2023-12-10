@@ -103,7 +103,7 @@ class Shellbot(discord.Bot):
                     job = j
 
             if job is None:
-                await ctx.respond(f"Job ID {id} is not currently running.", ephemeral=True)
+                await ctx.respond(f"Job ID {id} not found.", ephemeral=True)
                 return
 
             await job.view(ctx)
@@ -123,7 +123,7 @@ class Shellbot(discord.Bot):
                     job = j
 
             if job is None:
-                await ctx.respond(f"Job ID {id} is not currently running.", ephemeral=True)
+                await ctx.respond(f"Job ID {id} not found.", ephemeral=True)
                 return
 
             await ctx.defer()
@@ -152,7 +152,7 @@ class Shellbot(discord.Bot):
                     job = j
 
             if job is None:
-                await ctx.respond(f"Job ID {id} is not currently running.", ephemeral=True)
+                await ctx.respond(f"Job ID {id} not found.", ephemeral=True)
                 return
 
             await ctx.defer(ephemeral=True)
@@ -166,7 +166,7 @@ class Shellbot(discord.Bot):
                 return
 
             if len(self._jobs) == 0:
-                await ctx.respond("No job is currently running.", ephemeral=True)
+                await ctx.respond("No jobs found.", ephemeral=True)
                 return
 
             pad = len(str(Job.id_counter))
@@ -182,6 +182,37 @@ class Shellbot(discord.Bot):
                 buff.append(prefix + str(j.id).ljust(pad) + ' :: ' + str(j.args))
 
             await ctx.respond("```diff\n" + "\n".join(buff) + "\n```", ephemeral=True)
+
+        @job_group.command(name="status")
+        async def job_status(ctx, 
+                           job: discord.Option(int, autocomplete=discord.utils.basic_autocomplete(get_jobs))
+                           ):
+            id = job
+            if ctx.author.id not in self.admins:
+                await ctx.respond("Permission not granted.", ephemeral=True)
+                return
+
+            job = None
+            for j in self._jobs:
+                if j.id == id:
+                    job = j
+
+            if job is None:
+                await ctx.respond(f"Job ID {id} not found.", ephemeral=True)
+                return
+
+            prefix = '   '
+            if job.status == 'running':
+                prefix = '>  '
+            elif job.status == 'success':
+                prefix = '+  '
+            elif job.status == 'fail':
+                prefix = '-  '
+
+            await ctx.respond("```diff\n" 
+                              + prefix + str(job.id) + ' :: ' 
+                              + str(job.args) + "\n```",
+                              ephemeral=True)
 
     def job_by_view(self, message):
         for job in self._jobs:

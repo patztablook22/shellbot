@@ -84,10 +84,12 @@ class Shellbot(discord.Bot):
                 await ctx.respond("Permission not granted.", ephemeral=True)
                 return
 
-            complete_command.update_history(ctx, command)
             job = Job(command.split(' '))
-
             self._jobs.add(job)
+
+            complete_command.update_history(ctx, command)
+            complete_job_id.update_history(ctx, job.id)
+
             await job.view(ctx)
             await job.start()
 

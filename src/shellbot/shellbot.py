@@ -3,6 +3,7 @@ from discord.ext import commands
 import asyncio
 from typing import Optional
 from shellbot.job import Job
+from shellbot.complete import Complete
 import os
 import shutil
 import time
@@ -72,31 +73,33 @@ class Shellbot(discord.Bot):
 
         job_group = self.create_group(name="job")
 
+        complete_job_id = Complete(self, lambda: [job.id for job in self._jobs])
+        complete_command = Complete(self)
+
         @job_group.command(name="run")
-        async def job_run(ctx, command: str):
+        async def job_run(ctx, 
+                          command: discord.Option(str, autocomplete=complete_command.autocomplete)
+                          ):
             if ctx.author.id not in self.admins:
                 await ctx.respond("Permission not granted.", ephemeral=True)
                 return
 
+            complete_command.update_history(ctx, command)
             job = Job(command.split(' '))
 
             self._jobs.add(job)
             await job.view(ctx)
             await job.start()
 
-        async def get_jobs(ctx: discord.AutocompleteContext):
-            if ctx.interaction.user.id not in self.admins: return []
-            return [job.id for job in self._jobs]
-
         @job_group.command(name="view")
         async def job_view(ctx, 
-                           job: discord.Option(int, autocomplete=discord.utils.basic_autocomplete(get_jobs))
+                           job: discord.Option(int, autocomplete=complete_job_id.autocomplete)
                            ):
-            id = job
             if ctx.author.id not in self.admins:
                 await ctx.respond("Permission not granted.", ephemeral=True)
                 return
 
+            id = job
             job = None
             for j in self._jobs:
                 if j.id == id:
@@ -106,17 +109,18 @@ class Shellbot(discord.Bot):
                 await ctx.respond(f"Job ID {id} not found.", ephemeral=True)
                 return
 
+            complete_job_id.update_history(ctx, id)
             await job.view(ctx)
 
         @job_group.command(name="dump")
         async def job_dump(ctx, 
-                           job: discord.Option(int, autocomplete=discord.utils.basic_autocomplete(get_jobs))
+                           job: discord.Option(int, autocomplete=complete_job_id.autocomplete)
                            ):
-            id = job
             if ctx.author.id not in self.admins:
                 await ctx.respond("Permission not granted.", ephemeral=True)
                 return
 
+            id = job
             job = None
             for j in self._jobs:
                 if j.id == id:
@@ -126,6 +130,7 @@ class Shellbot(discord.Bot):
                 await ctx.respond(f"Job ID {id} not found.", ephemeral=True)
                 return
 
+            complete_job_id.update_history(ctx, id)
             await ctx.defer()
             temp_filename = f"temp_{time.time()}.txt"
             with open(temp_filename, 'w') as f:
@@ -139,13 +144,13 @@ class Shellbot(discord.Bot):
 
         @job_group.command(name='kill')
         async def job_kill(ctx, 
-                           job: discord.Option(int, autocomplete=discord.utils.basic_autocomplete(get_jobs))
+                           job: discord.Option(int, autocomplete=complete_job_id.autocomplete)
                            ):
-            id = job
             if ctx.author.id not in self.admins:
                 await ctx.respond("Permission not granted.", ephemeral=True)
                 return
 
+            id = job
             job = None
             for j in self._jobs:
                 if j.id == id:
@@ -155,6 +160,7 @@ class Shellbot(discord.Bot):
                 await ctx.respond(f"Job ID {id} not found.", ephemeral=True)
                 return
 
+            complete_job_id.update_history(ctx, id)
             await ctx.defer(ephemeral=True)
             await job.kill()
             await ctx.respond("Killed.", ephemeral=True)
@@ -185,13 +191,13 @@ class Shellbot(discord.Bot):
 
         @job_group.command(name="status")
         async def job_status(ctx, 
-                           job: discord.Option(int, autocomplete=discord.utils.basic_autocomplete(get_jobs))
-                           ):
-            id = job
+                             job: discord.Option(int, autocomplete=complete_job_id.autocomplete)
+                             ):
             if ctx.author.id not in self.admins:
                 await ctx.respond("Permission not granted.", ephemeral=True)
                 return
 
+            id = job
             job = None
             for j in self._jobs:
                 if j.id == id:
@@ -200,6 +206,8 @@ class Shellbot(discord.Bot):
             if job is None:
                 await ctx.respond(f"Job ID {id} not found.", ephemeral=True)
                 return
+
+            complete_job_id.update_history(ctx, id)
 
             prefix = '   '
             if job.status == 'running':

@@ -22,7 +22,7 @@ class Shellbot(discord.Bot):
         self._jobs = set()
         self.restart = False
 
-        @self.slash_command()
+        @self.slash_command(description="Shuts the bot down.")
         async def shutdown(ctx):
             if ctx.author.id not in self.admins:
                 await ctx.respond("Permission not granted.", ephemeral=True)
@@ -30,11 +30,11 @@ class Shellbot(discord.Bot):
             await ctx.respond("Bye!", ephemeral=True)
             await self.close()
 
-        @self.slash_command()
+        @self.slash_command(description="Pings the bot.")
         async def ping(ctx):
             await ctx.respond("Pong.", ephemeral=True)
 
-        @self.slash_command()
+        @self.slash_command(description="Restarts the bot.")
         async def restart(ctx):
             if ctx.author.id not in self.admins:
                 await ctx.respond("Permission not granted.", ephemeral=True)
@@ -43,7 +43,7 @@ class Shellbot(discord.Bot):
             self.restart = True
             await self.close()
 
-        @self.slash_command()
+        @self.slash_command(description="Uploads a given file to Discord.")
         async def upload(ctx, path: str):
             if ctx.author.id not in self.admins:
                 await ctx.respond("Permission not granted.", ephemeral=True)
@@ -76,7 +76,7 @@ class Shellbot(discord.Bot):
         complete_job_id = Complete(self, lambda: [job.id for job in self._jobs])
         complete_command = Complete(self)
 
-        @job_group.command(name="run")
+        @job_group.command(name="run", description="Starts a new job.")
         async def job_run(ctx, 
                           command: discord.Option(str, autocomplete=complete_command.autocomplete)
                           ):
@@ -91,7 +91,7 @@ class Shellbot(discord.Bot):
             await job.view(ctx)
             await job.start()
 
-        @job_group.command(name="view")
+        @job_group.command(name="view", description="Opens a new view for a job.")
         async def job_view(ctx, 
                            job: discord.Option(int, autocomplete=complete_job_id.autocomplete)
                            ):
@@ -112,7 +112,7 @@ class Shellbot(discord.Bot):
             complete_job_id.update_history(ctx, id)
             await job.view(ctx)
 
-        @job_group.command(name="dump")
+        @job_group.command(name="dump", description="Uploads a job's entire output to Discord.")
         async def job_dump(ctx, 
                            job: discord.Option(int, autocomplete=complete_job_id.autocomplete)
                            ):
@@ -142,7 +142,7 @@ class Shellbot(discord.Bot):
 
             os.remove(temp_filename)
 
-        @job_group.command(name='kill')
+        @job_group.command(name='kill', description="Kills a job.")
         async def job_kill(ctx, 
                            job: discord.Option(int, autocomplete=complete_job_id.autocomplete)
                            ):
@@ -165,7 +165,7 @@ class Shellbot(discord.Bot):
             await job.kill()
             await ctx.respond("Killed.", ephemeral=True)
 
-        @job_group.command(name="list")
+        @job_group.command(name="list", description="Lists all jobs.")
         async def job_list(ctx):
             if ctx.author.id not in self.admins:
                 await ctx.respond("Permission not granted.", ephemeral=True)
@@ -189,7 +189,7 @@ class Shellbot(discord.Bot):
 
             await ctx.respond("```diff\n" + "\n".join(buff) + "\n```", ephemeral=True)
 
-        @job_group.command(name="status")
+        @job_group.command(name="status", description="Shows a job's status.")
         async def job_status(ctx, 
                              job: discord.Option(int, autocomplete=complete_job_id.autocomplete)
                              ):

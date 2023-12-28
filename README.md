@@ -1,6 +1,6 @@
 # Shellbot
 
-A Discord bot for monitoring and controlling remote jobs as a remote shell.
+A Discord bot for monitoring and controlling jobs as a remote shell.
 
 ## Installation
 

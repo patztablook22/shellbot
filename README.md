@@ -16,7 +16,7 @@ git+https://github.com/patztablook22/shellbot
 
 ## Usage
 
-Change your working directory to what you wish to be the working directory for the Shellbot application and run
+Change your working directory to what you wish to be the working directory for the Shellbot application and run:
 ```sh
 python3 -m shellbot path/to/config.json
 ```

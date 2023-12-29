@@ -254,3 +254,8 @@ class Shellbot(discord.Bot):
 
     async def on_message_edit(self, before, after):
         code = self.get_code(after)
+
+    async def close(self):
+        await super().close()
+        for job in self._jobs:
+            job.kill()

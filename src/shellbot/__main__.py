@@ -28,9 +28,9 @@ def main(argv):
     handler = Handler()
     observer.schedule(handler, config_path)
 
-    observer.start()
+    #observer.start()
     bot.run(token)
-    observer.join()
+    #observer.join()
 
 if __name__ == '__main__':
     main(sys.argv)

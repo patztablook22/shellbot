@@ -19,7 +19,7 @@ class Complete:
     @property
     def autocomplete(self):
         def complete_inner(ctx: discord.AutocompleteContext):
-            if ctx.interaction.user.id not in self._bot.admins: return []
+            if not self._bot.permitted(ctx.interaction.user): return []
 
             history = self._history.get(ctx.interaction.user.id, [])
             if self._all_options is None:
